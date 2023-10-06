@@ -1,42 +1,46 @@
+require('dotenv').config();
+
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
 const User = require('../models/user');
-const { JWT_SECRET } = require('../utils/constants');
+
+const { NODE_ENV, JWT_SECRET } = process.env;
 const ConflictError = require('../errors/ConflictError');
 const BadRequestError = require('../errors/BadRequestError');
 const UnauthorizedError = require('../errors/UnauthorizedError');
 const NotFoundError = require('../errors/NotFoundError');
 
 const createUser = (req, res, next) => {
-  const {
-    name, about, avatar, email, password,
-  } = req.body;
-
-  bcrypt.hash(password, 10)
-    .then((hash) => User.create({
-      name, about, avatar, email, password: hash,
-    }))
-    .then(() => {
-      res.status(201).send({
-        name, about, avatar, email,
+  bcrypt.hash(req.body.password, 10).then((hash) => {
+    User.create({
+      name: req.body.name,
+      about: req.body.about,
+      avatar: req.body.avatar,
+      email: req.body.email,
+      password: hash,
+    })
+      .then((newUser) => res.status(201).send({
+        name: newUser.name,
+        about: newUser.about,
+        avatar: newUser.avatar,
+        email: newUser.email,
+        _id: newUser._id,
+      }))
+      .catch((error) => {
+        if (error.code === 11000) {
+          return next(
+            new ConflictError('Пользователь с такой почтой уже зарегистрирвован'),
+          );
+        }
+        if (error.name === 'ValidationError') {
+          return next(
+            new BadRequestError('Переданы некорректные данные.'),
+          );
+        }
+        return next(error);
       });
-    })
-    .catch((error) => {
-      if (error.code === 11000) {
-        next(
-          new ConflictError('Пользователь с такой почтой уже зарегистрирвован'),
-        );
-        return;
-      }
-      if (error.name === 'ValidationError') {
-        next(
-          new BadRequestError('Переданы некорректные данные.'),
-        );
-        return;
-      }
-      next(error);
-    })
+  })
     .catch(next);
 };
 
@@ -54,7 +58,13 @@ const login = (req, res, next) => {
           if (!matched) {
             next(new UnauthorizedError('Неправильные почта или пароль'));
           }
-          const token = jwt.sign({ _id: user._id }, JWT_SECRET || 'JWT_SECRET', { expiresIn: '7d' });
+          const token = jwt.sign(
+            { _id: user._id },
+            NODE_ENV === 'production' ? JWT_SECRET : 'JWT_SECRET',
+            {
+              expiresIn: '7d',
+            },
+          );
           return res.send({ token });
         });
     })
@@ -63,7 +73,7 @@ const login = (req, res, next) => {
 
 const getUsers = (req, res, next) => {
   User.find({})
-    .then((users) => res.send({ data: users }))
+    .then((users) => res.send(users))
     .catch(next);
 };
 
@@ -74,7 +84,7 @@ const getUser = (req, res, next) => {
         next(new NotFoundError('Пользователь по указанному _id не найден'));
         return;
       }
-      res.send({ data: user });
+      res.send(user);
     })
     .catch((error) => {
       if (error.name === 'CastError') {
@@ -96,7 +106,7 @@ const getUserInfo = (req, res, next) => {
         );
         return;
       }
-      res.send({ data: user });
+      res.send(user);
     })
     .catch(next);
 };
@@ -117,7 +127,7 @@ const updateProfile = (req, res, next) => {
         );
         return;
       }
-      res.send({ data: user });
+      res.send(user);
     })
     .catch((error) => {
       if (error.name === 'ValidationError') {
@@ -148,7 +158,7 @@ const updateAvatar = (req, res, next) => {
         );
         return;
       }
-      res.send({ data: user });
+      res.send(user);
     })
     .catch((error) => {
       if (error.name === 'ValidationError') {
