@@ -1,7 +1,7 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import React, { useState, useEffect } from 'react';
 import { CurrentUserContext } from '../contexts/CurrentUserContext';
-import { api } from "../utils/api";
+import Api from "../utils/api";
 import { auth } from "../utils/auth";
 import { Route, Routes, Navigate, useNavigate } from "react-router-dom";
 
@@ -34,6 +34,14 @@ function App() {
 
   const navigate = useNavigate();
 
+  const api = new Api({
+    url: 'https://api.mesto.tamerlan.nomoredomainsrocks.ru',
+    headers: {
+      authorization: `Bearer ${localStorage.getItem('jwt')}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
   const isOpen = isEditProfilePopupOpen || isAddPlacePopupOpen || isEditAvatarPopupOpen || selectedCard;
 
   useEffect(() => {
@@ -60,8 +68,8 @@ function App() {
       .authorize(values.email, values.password)
       .then((data) => {
         if (data.token) {
-          setLoggedIn(true);
           localStorage.setItem("jwt", data.token);
+          setLoggedIn(true);
           setEmail(values.email);
           navigate("/");
         }
@@ -95,6 +103,7 @@ function App() {
   }
 
   const handleSignOut = () => {
+    setLoggedIn(false);
     setEmail("");
     localStorage.removeItem("jwt");
   };
@@ -115,6 +124,19 @@ function App() {
         });
     }
   }, [loggedIn]);
+
+  api.getInitialCards()
+  .then((cards) => {
+    console.log(cards); // выводим данные в консоль браузера
+    if (Array.isArray(cards)) {
+      setCards(cards);
+    } else {
+      console.log(`Данные не являются массивом: ${cards}`);
+    }
+  })
+  .catch((err) => {
+    console.log(`Ошибка при получении данных: ${err}`);
+  });
 
   function handleCardLike(card) {
     const isLiked = card.likes.some(i => i._id === currentUser._id);
