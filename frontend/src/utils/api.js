@@ -54,8 +54,8 @@ export default class Api {
         }).then(res => this._checkResponse(res));
     }
 
-    changeLikeCardStatus(id, isLiked) {
-        return fetch(`${this._url}/cards/likes/${id}`, {
+    changeLikeCardStatus(cardId, isLiked) {
+        return fetch(`${this._url}/cards/${cardId}/likes`, {
             method: `${!isLiked ? "DELETE" : "PUT"}`,
             headers: this._headers,
         }).then(res => this._checkResponse(res));

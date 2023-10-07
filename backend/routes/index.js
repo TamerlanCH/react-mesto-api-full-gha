@@ -7,7 +7,7 @@ const usersRouter = require('./users');
 router.use('/users', auth, usersRouter);
 router.use('/cards', auth, cardsRouter);
 
-router.use((req, res, next) => {
+router.use(auth, (req, res, next) => {
   next(new NotFoundError('Такой страницы не существует'));
 });
 

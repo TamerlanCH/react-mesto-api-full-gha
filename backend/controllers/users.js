@@ -49,14 +49,14 @@ const login = (req, res, next) => {
   User.findOne({ email }).select('+password')
     .then((user) => {
       if (!user) {
-        next(
+        return next(
           new UnauthorizedError('Неправильные почта или пароль'),
         );
       }
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            next(new UnauthorizedError('Неправильные почта или пароль'));
+            return next(new UnauthorizedError('Неправильные почта или пароль'));
           }
           const token = jwt.sign(
             { _id: user._id },
