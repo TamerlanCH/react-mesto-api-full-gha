@@ -53,7 +53,7 @@ function App() {
           if (res) {
             setLoggedIn(true);
             navigate("/");
-            setEmail(res.data.email);
+            setEmail(res.email);
           }
         })
         .catch((err) => console.log(err));
